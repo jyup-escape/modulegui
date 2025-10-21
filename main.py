@@ -263,7 +263,7 @@ class ModuleGUI(QWidget):
         ret = QMessageBox.question(self, "確認", f"モジュール「{name}」をアンインストールしますか？")
         if ret != QMessageBox.StandardButton.Yes:
             return
-        cmd = ["uv", "pip", "uninstall", "--python", str(python_path), "--y", name] #問題のゴミ
+        cmd = ["uv", "pip", "uninstall", name] #問題のゴミ
         self.run_command(cmd, f"モジュール削除 ({name})")
 
     # Command completion -----------------------------------------------------
