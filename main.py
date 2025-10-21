@@ -63,9 +63,11 @@ class ModuleGUI(QWidget):
         self.btn_new_env = QPushButton("新規環境作成")
         self.btn_delete_env = QPushButton("環境削除")
         self.btn_refresh_env = QPushButton("環境更新")
+        self.btn_updatemodules = QPushButton("モジュール更新")
         hl_env.addWidget(self.btn_new_env)
         hl_env.addWidget(self.btn_delete_env)
         hl_env.addWidget(self.btn_refresh_env)
+        hl_env.addWidget(self.btn_updatemodules)
         layout.addLayout(hl_env)
 
         # Package table
@@ -90,6 +92,7 @@ class ModuleGUI(QWidget):
         self.btn_delete_env.clicked.connect(self.delete_environment)
         self.btn_install.clicked.connect(self.install_module)
         self.env_combo.currentIndexChanged.connect(self.on_env_changed)
+        self.btn_updatemodules.clicked.connect(self.update_modules)
 
         self.load_environments()
 
@@ -294,8 +297,19 @@ class ModuleGUI(QWidget):
             return
 
         self.set_status(f"{op_name} 完了")
-
-
+# ======以下未完成==========================================================
+    def update_modules(self):    
+        python_path = self.get_current_python()
+        if not python_path:
+            QMessageBox.warning(self, "注意", "先に環境を選択してください。")
+            return
+        module = self.load_modules()
+        modules = json.loads(module.stdout)
+        for pkg in modules:
+            name  = pkg["name"]
+            subprocess.run(["uv", "pip", "install", "--upgrade", "--python", str(python_path), name])
+            QMessageBox.information(self, "情報", f"モジュール「{name}」を更新しました。")
+# ========================================================================
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = ModuleGUI()
