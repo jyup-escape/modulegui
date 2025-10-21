@@ -1,0 +1,14 @@
+[project]
+name = "modulegui"
+version = "0.1.0"
+description = "A graphical user interface module for dependency management."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.scripts]
+modulegui = "modulegui.__main__:main"
