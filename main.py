@@ -63,7 +63,7 @@ class ModuleGUI(QWidget):
         self.btn_new_env = QPushButton("新規環境作成")
         self.btn_delete_env = QPushButton("環境削除")
         self.btn_refresh_env = QPushButton("環境更新")
-        self.btn_updatemodules = QPushButton("モジュール更新")
+        self.btn_updatemodules = QPushButton("一括モジュール更新")
         hl_env.addWidget(self.btn_new_env)
         hl_env.addWidget(self.btn_delete_env)
         hl_env.addWidget(self.btn_refresh_env)
@@ -72,7 +72,7 @@ class ModuleGUI(QWidget):
 
         # Package table
         self.table = QTableWidget(0, 3)
-        self.table.setHorizontalHeaderLabels(["モジュール名", "バージョン", "操作"])
+        self.table.setHorizontalHeaderLabels(["モジュール名", "バージョン", "操作",])
         layout.addWidget(self.table)
 
         # Install controls
@@ -90,12 +90,21 @@ class ModuleGUI(QWidget):
         self.btn_refresh_env.clicked.connect(self.load_environments)
         self.btn_new_env.clicked.connect(self.create_environment)
         self.btn_delete_env.clicked.connect(self.delete_environment)
-        self.btn_install.clicked.connect(self.install_module)
         self.env_combo.currentIndexChanged.connect(self.on_env_changed)
         self.btn_updatemodules.clicked.connect(self.update_modules)
-
+        self.btn_install.clicked.connect(self.install_module)
         self.load_environments()
-
+    def install_module(self):
+        pkg_name = self.input_pkg.text()
+        if not pkg_name:
+            QMessageBox.warning(self, "入力エラー", "インストールするモジュール名を入力してください。")
+            return
+        python_path = self.get_current_python()
+        if not python_path:
+            QMessageBox.warning(self, "注意", "先に環境を選択してください。")
+            return
+        cmd = ["uv", "pip", "install", "--python", str(python_path), pkg_name]
+        self.run_command(cmd, f"モジュールインストール ({pkg_name})")
     def set_status(self, message: str) -> None:
         self.status.showMessage(message, 5000)
 
@@ -233,17 +242,6 @@ class ModuleGUI(QWidget):
         cmd = ["uv", "pip", "list", "--format", "json", "--python", str(python_path)]
         self.run_command(cmd, "モジュール一覧取得")
 
-    def install_module(self):
-        python_path = self.get_current_python()
-        if not python_path:
-            QMessageBox.warning(self, "注意", "先に環境を選択してください。")
-            return
-        pkg = self.input_pkg.text().strip()
-        if not pkg:
-            QMessageBox.warning(self, "入力エラー", "モジュール名を入力してください。")
-            return
-        cmd = ["uv", "pip", "install", "--python", str(python_path), pkg]
-        self.run_command(cmd, f"モジュールインストール ({pkg})")
 
     def populate_module_table(self, modules):
         self.table.setRowCount(0)
@@ -253,9 +251,24 @@ class ModuleGUI(QWidget):
             self.table.setItem(row, 0, QTableWidgetItem(pkg.get("name", "")))
             self.table.setItem(row, 1, QTableWidgetItem(pkg.get("version", "")))
             btn_del = QPushButton("削除")
+            btn_version = QPushButton("バージョン管理")
             btn_del.clicked.connect(lambda _, name=pkg.get("name", ""): self.uninstall_module(name))
+            btn_version.clicked.connect(lambda _, name=pkg.get("name", ""): self.manage_version(name))
             self.table.setCellWidget(row, 2, btn_del)
-
+    def manage_version(self, name):
+        if not name:
+            return
+        python_path = self.get_current_python()
+        if not python_path:
+            QMessageBox.warning(self, "注意", "先に環境を選択してください。")
+            return
+        version, ok = QInputDialog.getText(self, "バージョン管理", f"モジュール「{name}」のインストールするバージョンを入力してください（空欄で最新バージョン）:")
+        if not ok:
+            return
+        version = version.strip()
+        pkg_spec = f"{name}=={version}" if version else name
+        cmd = ["uv", "pip", "install", "--python", str(python_path), pkg_spec]
+        self.run_command(cmd, f"モジュールバージョン管理 ({name})")
     def uninstall_module(self, name):
         if not name:
             return
@@ -296,19 +309,41 @@ class ModuleGUI(QWidget):
             self.load_modules()
             return
 
+        if op_name == "更新可能なモジュール確認":
+            try:
+                modules = json.loads(result or "[]")
+                if not modules:
+                    QMessageBox.information(self, "情報", "更新可能なモジュールはありません。")
+                    self.set_status("更新確認 完了")
+                    return
+                
+                python_path = self.get_current_python()
+                if not python_path:
+                    return
+                
+                ret = QMessageBox.question(
+                    self,
+                    "確認",
+                    f"{len(modules)}個のモジュールに更新可能なバージョンがあります。更新しますか？",
+                )
+                if ret != QMessageBox.StandardButton.Yes:
+                    return
+                
+                cmd = ["uv", "pip", "install", "--upgrade", "--python", str(python_path)]
+                cmd.extend(pkg["name"] for pkg in modules)
+                self.run_command(cmd, "モジュール更新")
+            except Exception as exc:
+                QMessageBox.critical(self, "エラー", f"更新可能なモジュールの確認に失敗しました。\n{exc}")
+                return
+
         self.set_status(f"{op_name} 完了")
-# ======以下未完成==========================================================
     def update_modules(self):    
         python_path = self.get_current_python()
         if not python_path:
             QMessageBox.warning(self, "注意", "先に環境を選択してください。")
             return
-        module = self.load_modules()
-        modules = json.loads(module.stdout)
-        for pkg in modules:
-            name  = pkg["name"]
-            subprocess.run(["uv", "pip", "install", "--upgrade", "--python", str(python_path), name])
-            QMessageBox.information(self, "情報", f"モジュール「{name}」を更新しました。")
+        cmd = ["uv", "pip", "list", "--outdated", "--format", "json", "--python", str(python_path)]
+        self.run_command(cmd, "更新可能なモジュール確認")
 # ========================================================================
 if __name__ == "__main__":
     app = QApplication(sys.argv)
