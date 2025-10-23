@@ -19,7 +19,9 @@ from PyQt6.QtWidgets import (
     QMessageBox,
     QStatusBar,
     QInputDialog,
+    QGroupBox,
 )
+from PyQt6.QtWidgets import QHeaderView, QAbstractItemView
 
 
 class CommandThread(QThread):
@@ -46,48 +48,134 @@ class ModuleGUI(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("ModuleGUI - モジュールと環境マネージャー")
-        self.resize(800, 600)
+        self.resize(900, 640)
         self.threads = []
         self.env_root = Path.cwd() / "envs"
         self.env_root.mkdir(parents=True, exist_ok=True)
         self.current_env_path: Path | None = None
+        self.modules_cache: list[dict] = []
+        self.active_commands = 0
 
         layout = QVBoxLayout()
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(18)
+        
         self.setLayout(layout)
 
         # Environment controls
+        env_group = QGroupBox("環境管理")
+        env_group_layout = QVBoxLayout()
+        env_group_layout.setSpacing(12)
+        env_group.setLayout(env_group_layout)
+
         hl_env = QHBoxLayout()
+        hl_env.setSpacing(10)
         self.env_combo = QComboBox()
+        self.env_combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
         hl_env.addWidget(QLabel("環境"))
-        hl_env.addWidget(self.env_combo)
+        hl_env.addWidget(self.env_combo, 1)
         self.btn_new_env = QPushButton("新規環境作成")
         self.btn_delete_env = QPushButton("環境削除")
         self.btn_refresh_env = QPushButton("環境更新")
         self.btn_updatemodules = QPushButton("一括モジュール更新")
         self.btn_pythonversions = QPushButton("Python バージョン管理")
-        hl_env.addWidget(self.btn_new_env)
-        hl_env.addWidget(self.btn_delete_env)
-        hl_env.addWidget(self.btn_refresh_env)
-        hl_env.addWidget(self.btn_updatemodules)
-        hl_env.addWidget(self.btn_pythonversions)
-        layout.addLayout(hl_env)
+        self.btn_new_env.setToolTip("仮想環境を新しく作成します。")
+        self.btn_delete_env.setToolTip("選択した環境を削除します。")
+        self.btn_refresh_env.setToolTip("環境リストを再読み込みします。")
+        self.btn_updatemodules.setToolTip("更新可能なモジュールを一括でアップデートします。")
+        self.btn_pythonversions.setToolTip("uv で管理されている Python バージョンを確認・追加します。")
+        button_row = QHBoxLayout()
+        button_row.setSpacing(8)
+        for btn in (
+            self.btn_new_env,
+            self.btn_delete_env,
+            self.btn_refresh_env,
+            self.btn_updatemodules,
+            self.btn_pythonversions,
+        ):
+            btn.setMinimumHeight(32)
+            button_row.addWidget(btn)
+
+        env_group_layout.addLayout(hl_env)
+        env_group_layout.addLayout(button_row)
+
+        self.env_info_label = QLabel("環境が選択されていません。")
+        self.env_info_label.setWordWrap(True)
+        self.env_info_label.setStyleSheet(
+            "QLabel { color: #555; background-color: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; padding: 8px; }"
+        )
+        env_group_layout.addWidget(self.env_info_label)
+
+        layout.addWidget(env_group)
 
         # Package table
+        modules_group = QGroupBox("モジュール管理")
+        modules_layout = QVBoxLayout()
+        modules_layout.setSpacing(12)
+        modules_group.setLayout(modules_layout)
+
+        self.module_summary_label = QLabel("環境を選択するとモジュール一覧を表示します。")
+        self.module_summary_label.setStyleSheet("QLabel { color: #444; }")
+        modules_layout.addWidget(self.module_summary_label)
+
+        search_layout = QHBoxLayout()
+        search_layout.setSpacing(8)
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("モジュール名を検索…")
+        self.search_input.setClearButtonEnabled(True)
+        self.btn_clear_search = QPushButton("検索クリア")
+        self.btn_clear_search.setMinimumWidth(100)
+        self.btn_clear_search.setEnabled(False)
+        self.btn_clear_search.setToolTip("検索キーワードをリセットします。")
+        search_layout.addWidget(self.search_input, 1)
+        search_layout.addWidget(self.btn_clear_search)
+        modules_layout.addLayout(search_layout)
+
         self.table = QTableWidget(0, 3)
-        self.table.setHorizontalHeaderLabels(["モジュール名", "バージョン", "操作",])
-        layout.addWidget(self.table)
+        self.table.setAlternatingRowColors(True)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.table.verticalHeader().setVisible(False)
+        self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        self.table.setHorizontalHeaderLabels([
+            "モジュール名",
+            "バージョン",
+            "操作",
+        ])
+        modules_layout.addWidget(self.table, 1)
 
         # Install controls
         hl_add = QHBoxLayout()
+        hl_add.setSpacing(8)
         self.input_pkg = QLineEdit()
         self.input_pkg.setPlaceholderText("モジュール名を入力…")
+        self.input_pkg.setClearButtonEnabled(True)
         self.btn_install = QPushButton("インストール")
+        self.btn_install.setToolTip("入力したモジュールを現在の環境にインストールします。")
         hl_add.addWidget(self.input_pkg)
         hl_add.addWidget(self.btn_install)
-        layout.addLayout(hl_add)
+        modules_layout.addLayout(hl_add)
+
+        layout.addWidget(modules_group, 1)
 
         self.status = QStatusBar()
+        self.status.setSizeGripEnabled(False)
         layout.addWidget(self.status)
+
+        self._interactive_widgets = [
+            self.btn_new_env,
+            self.btn_delete_env,
+            self.btn_refresh_env,
+            self.btn_updatemodules,
+            self.btn_pythonversions,
+            self.btn_install,
+            self.input_pkg,
+            self.search_input,
+            self.btn_clear_search,
+        ]
 
         self.btn_refresh_env.clicked.connect(self.load_environments)
         self.btn_new_env.clicked.connect(self.create_environment)
@@ -96,6 +184,8 @@ class ModuleGUI(QWidget):
         self.btn_updatemodules.clicked.connect(self.update_modules)
         self.btn_install.clicked.connect(self.install_module)
         self.btn_pythonversions.clicked.connect(self.manage_python_versions)
+        self.search_input.textChanged.connect(self.on_search_text_changed)
+        self.btn_clear_search.clicked.connect(self.clear_search)
         self.load_environments()
     def install_module(self):
         pkg_name = self.input_pkg.text()
@@ -108,8 +198,105 @@ class ModuleGUI(QWidget):
             return
         cmd = ["uv", "pip", "install", "--python", str(python_path), pkg_name]
         self.run_command(cmd, f"モジュールインストール ({pkg_name})")
+
     def set_status(self, message: str) -> None:
         self.status.showMessage(message, 5000)
+
+    def update_interaction_state(self):
+        busy = self.active_commands > 0
+        for widget in self._interactive_widgets:
+            widget.setEnabled(not busy)
+        self.env_combo.setEnabled(not busy)
+        self.table.setEnabled(not busy)
+        if busy:
+            self.setCursor(Qt.CursorShape.BusyCursor)
+        else:
+            self.unsetCursor()
+
+    def on_search_text_changed(self, text: str):
+        self.btn_clear_search.setEnabled(bool(text.strip()))
+        self.apply_module_filter()
+
+    def clear_search(self):
+        if self.search_input.text():
+            self.search_input.clear()
+
+    def apply_module_filter(self):
+        query = self.search_input.text().strip().lower()
+        filtered = []
+        for module in self.modules_cache:
+            name = module.get("name", "")
+            if not query or query in name.lower():
+                filtered.append(module)
+
+        self.table.setRowCount(0)
+        for pkg in filtered:
+            row = self.table.rowCount()
+            self.table.insertRow(row)
+            pkg_name = pkg.get("name", "")
+            self.table.setItem(row, 0, QTableWidgetItem(pkg_name))
+            self.table.setItem(row, 1, QTableWidgetItem(pkg.get("version", "")))
+            btn_del = QPushButton("削除")
+            btn_version = QPushButton("バージョン管理")
+            btn_del.setToolTip(f"{pkg_name} をアンインストール")
+            btn_version.setToolTip(f"{pkg_name} のバージョンを指定して管理")
+            btn_del.clicked.connect(
+                lambda _, name=pkg.get("name", ""): self.uninstall_module(name)
+            )
+            btn_version.clicked.connect(
+                lambda _, name=pkg.get("name", ""): self.manage_version(name)
+            )
+            op_container = QHBoxLayout()
+            op_container.setContentsMargins(0, 0, 0, 0)
+            op_container.setSpacing(6)
+            op_widget = QWidget()
+            op_widget.setLayout(op_container)
+            btn_del.setMinimumHeight(28)
+            btn_version.setMinimumHeight(28)
+            op_container.addWidget(btn_version)
+            op_container.addWidget(btn_del)
+            op_container.addStretch()
+            self.table.setCellWidget(row, 2, op_widget)
+
+        if self.current_env_path is None and not self.modules_cache:
+            self.module_summary_label.setText("環境を選択するとモジュール一覧を表示します。")
+            return
+
+        total = len(self.modules_cache)
+        if total == 0:
+            summary = "モジュールが見つかりませんでした。"
+        elif query:
+            summary = f"{len(filtered)} / {total} 件を表示中"
+        else:
+            summary = f"{total} 件のモジュールを表示中"
+        self.module_summary_label.setText(summary)
+
+    def update_env_info_label(self):
+        if not self.current_env_path:
+            self.env_info_label.setText("環境が選択されていません。")
+            self.env_info_label.setToolTip("")
+            return
+
+        env_path = self.current_env_path
+        details = [f"選択中: {env_path}"]
+        python_info = self._read_python_version(env_path)
+        if python_info:
+            details.append(f"Python: {python_info}")
+        self.env_info_label.setText("\n".join(details))
+        self.env_info_label.setToolTip(str(env_path))
+
+    def _read_python_version(self, env_path: Path) -> str | None:
+        pyvenv = env_path / "pyvenv.cfg"
+        if not pyvenv.exists():
+            return None
+        try:
+            for line in pyvenv.read_text(encoding="utf-8", errors="ignore").splitlines():
+                if line.lower().startswith("version ="):
+                    return line.split("=", 1)[1].strip()
+        except Exception:
+            return None
+        return None
+
     def manage_python_versions(self):
         dialog = QInputDialog()
         dialog.setLabelText("使用するPython バージョンを入力してください（例: 3.11）:")
@@ -142,6 +329,8 @@ class ModuleGUI(QWidget):
         thread.finished.connect(self.on_command_finished)
         thread.finished.connect(lambda *_: self.threads.remove(thread) if thread in self.threads else None)
         self.threads.append(thread)
+        self.active_commands += 1
+        self.update_interaction_state()
         thread.start()
         self.set_status(f"実行中: {op_name} …")
 
@@ -188,27 +377,34 @@ class ModuleGUI(QWidget):
 
         if self.env_combo.count() == 0:
             self.current_env_path = None
-            self.table.setRowCount(0)
+            self.modules_cache = []
+            self.apply_module_filter()
             self.set_status("環境が見つかりませんでした。")
         else:
             current_data = self.env_combo.currentData(Qt.ItemDataRole.UserRole)
             if current_data:
                 self.current_env_path = Path(current_data)
                 self.load_modules()
+        self.update_env_info_label()
 
     def on_env_changed(self, index):
         env_data = self.env_combo.itemData(index, Qt.ItemDataRole.UserRole)
         if not env_data:
             self.current_env_path = None
-            self.table.setRowCount(0)
+            self.modules_cache = []
+            self.apply_module_filter()
+            self.update_env_info_label()
             return
         path = Path(env_data)
         if not path.exists():
             QMessageBox.warning(self, "注意", f"環境パスが存在しません: {path}")
             self.current_env_path = None
-            self.table.setRowCount(0)
+            self.modules_cache = []
+            self.apply_module_filter()
+            self.update_env_info_label()
             return
         self.current_env_path = path
+        self.update_env_info_label()
         self.load_modules()
 
     def create_environment(self):
@@ -263,9 +459,11 @@ class ModuleGUI(QWidget):
 
     # Package management -----------------------------------------------------
     def load_modules(self):
+        self.module_summary_label.setText("モジュールを読み込み中…")
+        self.table.setRowCount(0)
+        self.modules_cache = []
         python_path = self.get_current_python()
         if not python_path:
-            self.table.setRowCount(0)
             self.set_status("Python 実行ファイルが見つかりません。環境を確認してください。")
             return
         cmd = ["uv", "pip", "list", "--format", "json", "--python", str(python_path)]
@@ -273,17 +471,8 @@ class ModuleGUI(QWidget):
 
 
     def populate_module_table(self, modules):
-        self.table.setRowCount(0)
-        for pkg in modules:
-            row = self.table.rowCount()
-            self.table.insertRow(row)
-            self.table.setItem(row, 0, QTableWidgetItem(pkg.get("name", "")))
-            self.table.setItem(row, 1, QTableWidgetItem(pkg.get("version", "")))
-            btn_del = QPushButton("削除")
-            btn_version = QPushButton("バージョン管理")
-            btn_del.clicked.connect(lambda _, name=pkg.get("name", ""): self.uninstall_module(name))
-            btn_version.clicked.connect(lambda _, name=pkg.get("name", ""): self.manage_version(name))
-            self.table.setCellWidget(row, 2, btn_del)
+        self.modules_cache = list(modules)
+        self.apply_module_filter()
     def manage_version(self, name):
         if not name:
             return
@@ -308,11 +497,21 @@ class ModuleGUI(QWidget):
         ret = QMessageBox.question(self, "確認", f"モジュール「{name}」をアンインストールしますか？")
         if ret != QMessageBox.StandardButton.Yes:
             return
-        cmd = ["uv", "pip", "uninstall", name] #問題のゴミ
+        cmd = [
+            "uv",
+            "pip",
+            "uninstall",
+            "--python",
+            str(python_path),
+            "-y",
+            name,
+        ]
         self.run_command(cmd, f"モジュール削除 ({name})")
 
     # Command completion -----------------------------------------------------
     def on_command_finished(self, op_name, result):
+        self.active_commands = max(0, self.active_commands - 1)
+        self.update_interaction_state()
         if isinstance(result, Exception):
             QMessageBox.critical(self, "エラー", f"{op_name} に失敗しました。\n{result}")
             self.set_status(f"{op_name} 失敗")
@@ -333,7 +532,7 @@ class ModuleGUI(QWidget):
             self.load_environments()
             return
 
-        if op_name.startswith("モジュールインストール") or op_name.startswith("モジュール削除"):
+        if op_name.startswith("モジュールインストール") or op_name.startswith("モジュール削除") or op_name.startswith("モジュールバージョン管理"):
             self.set_status(f"{op_name} 完了")
             self.load_modules()
             return
@@ -364,6 +563,11 @@ class ModuleGUI(QWidget):
             except Exception as exc:
                 QMessageBox.critical(self, "エラー", f"更新可能なモジュールの確認に失敗しました。\n{exc}")
                 return
+
+        if op_name == "モジュール更新":
+            self.set_status(f"{op_name} 完了")
+            self.load_modules()
+            return
 
         self.set_status(f"{op_name} 完了")
     def update_modules(self):    
