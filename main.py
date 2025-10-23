@@ -64,10 +64,12 @@ class ModuleGUI(QWidget):
         self.btn_delete_env = QPushButton("環境削除")
         self.btn_refresh_env = QPushButton("環境更新")
         self.btn_updatemodules = QPushButton("一括モジュール更新")
+        self.btn_pythonversions = QPushButton("Python バージョン管理")
         hl_env.addWidget(self.btn_new_env)
         hl_env.addWidget(self.btn_delete_env)
         hl_env.addWidget(self.btn_refresh_env)
         hl_env.addWidget(self.btn_updatemodules)
+        hl_env.addWidget(self.btn_pythonversions)
         layout.addLayout(hl_env)
 
         # Package table
@@ -93,6 +95,7 @@ class ModuleGUI(QWidget):
         self.env_combo.currentIndexChanged.connect(self.on_env_changed)
         self.btn_updatemodules.clicked.connect(self.update_modules)
         self.btn_install.clicked.connect(self.install_module)
+        self.btn_pythonversions.clicked.connect(self.manage_python_versions)
         self.load_environments()
     def install_module(self):
         pkg_name = self.input_pkg.text()
@@ -107,7 +110,33 @@ class ModuleGUI(QWidget):
         self.run_command(cmd, f"モジュールインストール ({pkg_name})")
     def set_status(self, message: str) -> None:
         self.status.showMessage(message, 5000)
+    def manage_python_versions(self):
+        dialog = QInputDialog()
+        dialog.setLabelText("使用するPython バージョンを入力してください（例: 3.11）:")
+        dialog.setWindowTitle("Python バージョン管理")
+        dialog.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint)
+        dialog.resize(400, 200)
+        cmd = ["uv", "python", "list"]
+        try:
+            proc = subprocess.run(cmd, capture_output=True, text=True)
+            versions = proc.stdout.strip().split('\n')
+            formatted_versions = '\n'.join(f"  • {v.strip()}" for v in versions if v.strip())
+            message = f"インストール済みPython バージョン:\n{formatted_versions}\n\n使用するPython バージョンを入力してください（例: 3.11）:"
+            dialog.setLabelText(message)
+        except Exception:
+            dialog.setLabelText("使用するPython バージョンを入力してください（例: 3.11）:")
 
+        if not dialog.exec():
+            return
+        version = dialog.textValue().strip()
+        if not version:
+            return
+
+        try:
+            cmd = ["uv", "python", "install", version]
+            self.run_command(cmd, f"Python {version} インストール")
+        except Exception as exc:
+            QMessageBox.critical(self, "エラー", f"Python {version} のインストールに失敗しました。\n{exc}")
     def run_command(self, cmd, op_name):
         thread = CommandThread(cmd, op_name)
         thread.finished.connect(self.on_command_finished)
