@@ -1,4 +1,5 @@
-![UV](https://img.shields.io/badge/UV-0.9.4-blue)
+![UV](https://img.shields.io/badge/UV-0.9.4-blue) ![python](https://img.shields.io/badge/python-3.13.9%7C3.11.14-blue)
+
 
 # ModuleGUI — モジュールと環境マネージャー（PyQt6 + uv）
 
