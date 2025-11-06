@@ -1,3 +1,5 @@
+![UV](https://img.shields.io/badge/UV-0.9.4-blue)
+
 # ModuleGUI — モジュールと環境マネージャー（PyQt6 + uv）
 
 GUI で Python 仮想環境とモジュール（パッケージ）を管理できるデスクトップアプリです。内部的に [uv](https://github.com/astral-sh/uv) を呼び出して、環境作成・パッケージの一覧/インストール/アンインストール/アップデートなどを行います。PyQt6 製で、非同期実行（`QThread`）により UI をブロックしません。
