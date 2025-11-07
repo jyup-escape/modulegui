@@ -3,6 +3,7 @@
 
 # PYVY — モジュールと環境マネージャー（PyQt6 + uv）
 
+[パッチノート ](https://github.com/jyup-escape/PYVY/edit/main/patchnote.md)
 GUI で Python 仮想環境とモジュール（パッケージ）を管理できるデスクトップアプリです。内部的に [uv](https://github.com/astral-sh/uv) を呼び出して、環境作成・パッケージの一覧/インストール/アンインストール/アップデートなどを行います。PyQt6 製で、非同期実行（`QThread`）により UI をブロックしません。
 
 > **想定用途**: 複数の仮想環境や依存パッケージを GUI から直感的に扱いたい個人/チーム向け。
