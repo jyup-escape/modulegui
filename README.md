@@ -36,9 +36,17 @@ GUI で Python 仮想環境とモジュール（パッケージ）を管理で�
 
 ## 動作要件
 
+![python](https://img.shields.io/badge/python-3.13%7C3.11-blue)　![UV](https://img.shields.io/badge/UV-0.9.4-blue)
+
 * Python **3.10+**（3.11/3.12 推奨）
+ 
 * **uv** CLI が PATH から実行可能であること
-* OS: Windows
+  
+| Distribution | Version |
+|---------------|----------|
+| windows11 | ![0.0.1](https://img.shields.io/badge/0.0.1-brightgreen) |
+| Ubuntu 24.04.3 | ![0.0.1](https://img.shields.io/badge/0.0.1-brightgreen) |
+| Mac | ![1.68.2](https://img.shields.io/badge/Unverified-orange) |
 
 > 本アプリは **uv** を通じて仮想環境・パッケージ操作を行います。pip の代替として uv を利用します。
 
