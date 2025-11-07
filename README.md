@@ -4,6 +4,14 @@
 # PYVY — モジュールと環境マネージャー（PyQt6 + uv）
 
 [パッチノート ](https://github.com/jyup-escape/PYVY/edit/main/patchnote.md)
+
+| Distribution | Version |
+|---------------|----------|
+| [0.1.1](https://pypi.org/project/PYVY/0.1.1/) | ![0.1.1](https://img.shields.io/badge/notfunctioning-orange) |
+| [0.1.2](https://pypi.org/project/PYVY/0.1.2/) | ![0.1.2](https://img.shields.io/badge/notfunctioning-orange) |
+| [0.1.2.1](https://pypi.org/project/PYVY/0.1.2.1/) | ![1.68.2](https://img.shields.io/badge/notfunctioning-orange) |
+| [0.1.2.2](https://pypi.org/project/PYVY/0.1.2.2/) | ![1.68.2](https://img.shields.io/badge/functioning-green) |
+
 GUI で Python 仮想環境とモジュール（パッケージ）を管理できるデスクトップアプリです。内部的に [uv](https://github.com/astral-sh/uv) を呼び出して、環境作成・パッケージの一覧/インストール/アンインストール/アップデートなどを行います。PyQt6 製で、非同期実行（`QThread`）により UI をブロックしません。
 
 > **想定用途**: 複数の仮想環境や依存パッケージを GUI から直感的に扱いたい個人/チーム向け。
@@ -55,19 +63,7 @@ GUI で Python 仮想環境とモジュール（パッケージ）を管理で�
 ## セットアップ
 
 ```bash
-# リポジトリ取得
-git clone https://github.com/jyup-escape/PYVY
-cd PYVY
-
-# 依存（アプリ自身の GUI 実行に必要）
-# ※ アプリ内部で uv を呼ぶので uv は別途インストールしてください
-pip install PyQt6
-
-# uv のインストール（未導入の場合）
-# 例）macOS/Homebrew
-brew install uv
-# 例）pipx
-pipx install uv
+pip install PYVY
 ```
 
 ---
@@ -75,7 +71,7 @@ pipx install uv
 ## 実行方法
 
 ```bash
-python main.py
+pyvy
 ```
 
 > 本 README のコード例では `ModuleGUI` を直接 `__main__` から起動します。
