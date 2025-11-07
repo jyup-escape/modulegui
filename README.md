@@ -1,7 +1,7 @@
 ![UV](https://img.shields.io/badge/UV-0.9.4-blue) ![python](https://img.shields.io/badge/python-3.13.9%7C3.11.14-blue)
 
 
-# ModuleGUI — モジュールと環境マネージャー（PyQt6 + uv）
+# PYVY — モジュールと環境マネージャー（PyQt6 + uv）
 
 GUI で Python 仮想環境とモジュール（パッケージ）を管理できるデスクトップアプリです。内部的に [uv](https://github.com/astral-sh/uv) を呼び出して、環境作成・パッケージの一覧/インストール/アンインストール/アップデートなどを行います。PyQt6 製で、非同期実行（`QThread`）により UI をブロックしません。
 
@@ -47,8 +47,8 @@ GUI で Python 仮想環境とモジュール（パッケージ）を管理で�
 
 ```bash
 # リポジトリ取得
-git clone https://github.com/jyup-escape/modulegui
-cd modulegui
+git clone https://github.com/jyup-escape/PYVY
+cd PYVY
 
 # 依存（アプリ自身の GUI 実行に必要）
 # ※ アプリ内部で uv を呼ぶので uv は別途インストールしてください
