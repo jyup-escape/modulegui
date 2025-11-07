@@ -6,10 +6,10 @@ from PyQt6.QtWidgets import (
     QHeaderView, QAbstractItemView, QMessageBox
 )
 from PyQt6.QtCore import Qt
-from core.env_manager import EnvManager
-from core.module_manager import ModuleManager
-from core.python_manager import PythonManager
-from core.utils import get_python_path
+from pyvy.core.env_manager import EnvManager
+from pyvy.core.module_manager import ModuleManager
+from pyvy.core.python_manager import PythonManager
+from pyvy.core.utils import get_python_path
 
 class ModuleGUI(QWidget):
     def __init__(self):
@@ -168,10 +168,10 @@ class ModuleGUI(QWidget):
     def upgrade_all(self):
         py = get_python_path(self.current_env)
         self.mod_mgr.upgrade_all(py)
+def main() -> None:
+        app = QApplication(sys.argv)
+        window = ModuleGUI()
+        window.show()
+        sys.exit(app.exec())
 if __name__ == "__main__":
-    import sys
-    from PyQt6.QtWidgets import QApplication
-    app = QApplication(sys.argv)
-    window = ModuleGUI()
-    window.show()
-    sys.exit(app.exec())
+    main()
