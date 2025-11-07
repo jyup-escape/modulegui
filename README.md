@@ -47,7 +47,7 @@ GUI で Python 仮想環境とモジュール（パッケージ）を管理で�
 | windows11 | ![0.0.1](https://img.shields.io/badge/0.0.2-brightgreen) |
 | Ubuntu 24.04.3 | ![0.0.1](https://img.shields.io/badge/0.0.1-orange) |
 | Mac | ![1.68.2](https://img.shields.io/badge/Unverified-orange) |
-
+> Ubuntu, Macは動作確認が遅れるため、1バージョン遅れます。
 > 本アプリは **uv** を通じて仮想環境・パッケージ操作を行います。pip の代替として uv を利用します。
 
 ---
