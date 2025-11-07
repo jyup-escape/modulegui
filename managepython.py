@@ -52,4 +52,5 @@ class PythonManager:
                     return line.split("=", 1)[1].strip()
         except Exception:
             return None
-        return None
+        return None 
+    # test
