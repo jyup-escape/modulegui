@@ -4,7 +4,7 @@ import subprocess
 import shutil
 import re
 from pathlib import Path
-
+from managepython import PythonManager
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtWidgets import (
     QApplication,
@@ -55,6 +55,7 @@ class CommandThread(QThread):
 class ModuleGUI(QWidget):
     def __init__(self):
         super().__init__()
+        self.Pythonmanager = PythonManager()
         self.setWindowTitle("ModuleGUI - モジュールと環境マネージャー")
         self.resize(900, 640)
 
@@ -188,7 +189,7 @@ class ModuleGUI(QWidget):
         self.env_combo.currentIndexChanged.connect(self.on_env_changed)
         self.btn_updatemodules.clicked.connect(self.update_modules)
         self.btn_install.clicked.connect(self.install_module)
-        self.btn_pythonversions.clicked.connect(self.manage_python_versions)
+        self.btn_pythonversions.clicked.connect(self.Pythonmanager.manage_python_versions)
         self.btn_change_pyver.clicked.connect(self.change_env_python_version)
         self.search_input.textChanged.connect(self.on_search_text_changed)
         self.btn_clear_search.clicked.connect(self.clear_search)
@@ -426,50 +427,11 @@ class ModuleGUI(QWidget):
             return
         env_path = self.current_env_path
         details = [f"選択中: {env_path}"]
-        python_info = self._read_python_version(env_path)
+        python_info = self.Pythonmanager._read_python_version(env_path)
         if python_info:
             details.append(f"Python: {python_info}")
         self.env_info_label.setText("\n".join(details))
         self.env_info_label.setToolTip(str(env_path))
-
-    def _read_python_version(self, env_path: Path) -> str | None:
-        pyvenv = env_path / "pyvenv.cfg"
-        if not pyvenv.exists():
-            return None
-        try:
-            for line in pyvenv.read_text(encoding="utf-8", errors="ignore").splitlines():
-                if line.lower().startswith("version ="):
-                    return line.split("=", 1)[1].strip()
-        except Exception:
-            return None
-        return None
-
-    def manage_python_versions(self):
-        dialog = QInputDialog()
-        dialog.setLabelText("使用するPython バージョンを入力してください（例: 3.11）:")
-        dialog.setWindowTitle("Python バージョン管理")
-        dialog.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint)
-        dialog.resize(400, 200)
-        cmd = ["uv", "python", "list"]
-        try:
-            proc = subprocess.run(cmd, capture_output=True, text=True)
-            versions = proc.stdout.strip().split('\n')
-            formatted_versions = '\n'.join(f"  • {v.strip()}" for v in versions if v.strip())
-            message = f"インストール済み/利用可能なPython バージョン:\n{formatted_versions}\n\n使用するPython バージョンを入力してください（例: 3.11）:"
-            dialog.setLabelText(message)
-        except Exception:
-            dialog.setLabelText("使用するPython バージョンを入力してください（例: 3.11）:")
-
-        if not dialog.exec():
-            return
-        version = dialog.textValue().strip()
-        if not version:
-            return
-        try:
-            cmd = ["uv", "python", "install", version]
-            self.run_command(cmd, f"Python {version} インストール")
-        except Exception as exc:
-            QMessageBox.critical(self, "エラー", f"Python {version} のインストールに失敗しました。\n{exc}")
 
     def run_command(self, cmd, op_name):
         thread = CommandThread(cmd, op_name)
