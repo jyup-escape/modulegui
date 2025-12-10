@@ -12,6 +12,7 @@
 | [0.1.2.1](https://pypi.org/project/PYVY/0.1.2.1/) | ![1.68.2](https://img.shields.io/badge/notfunctioning-orange) |
 | [0.1.2.2](https://pypi.org/project/PYVY/0.1.2.2/) | ![1.68.2](https://img.shields.io/badge/functioning-green) |
 
+0.1.2.1以下は動きません
 GUI で Python 仮想環境とモジュール（パッケージ）を管理できるデスクトップアプリです。内部的に [uv](https://github.com/astral-sh/uv) を呼び出して、環境作成・パッケージの一覧/インストール/アンインストール/アップデートなどを行います。PyQt6 製で、非同期実行（`QThread`）により UI をブロックしません。
 
 > **想定用途**: 複数の仮想環境や依存パッケージを GUI から直感的に扱いたい個人/チーム向け。
